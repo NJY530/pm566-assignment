@@ -1,0 +1,6 @@
+---
+title: "Assignment1"
+author: Jiayi Nie
+output: github_document
+---
+
