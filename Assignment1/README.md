@@ -1,6 +1,7 @@
 Assignment1
 ================
 Jiayi Nie
+24/09/2021
 
 ## 1.Read in the data using data.table().
 

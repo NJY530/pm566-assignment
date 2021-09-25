@@ -1,6 +1,7 @@
 ---
 title: "Assignment1"
 author: Jiayi Nie
+date: 24/09/2021
 output: github_document
 always_allow_html: true
 ---
