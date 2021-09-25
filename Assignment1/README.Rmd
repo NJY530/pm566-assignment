@@ -2,5 +2,126 @@
 title: "Assignment1"
 author: Jiayi Nie
 output: github_document
+always_allow_html: true
 ---
 
+```{r packages, include=FALSE}
+library(data.table)
+library(tidyverse)
+library(leaflet)
+```
+
+
+## 1.Read in the data using data.table(). 
+For each of the two datasets, check the dimensions, headers, footers, variable names and variable types. 
+Check for any data issues, particularly in the key variable we are analyzing. 
+Make sure you write up a summary of all of your findings.
+
+```{r read data and check dimensions}
+pm2004 <- data.table::fread("2004.csv")
+pm2019 <- data.table::fread("2019.csv")
+```
+
+```{r check for pm2004}
+dim(pm2004)
+head(pm2004)
+tail(pm2004)
+str(pm2004)
+names(pm2004)
+table(pm2004$`Daily Mean PM2.5 Concentration`)
+table(pm2004$DAILY_AQI_VALUE)
+summary(pm2004$`Daily Mean PM2.5 Concentration`)
+summary(pm2004$DAILY_AQI_VALUE)
+```
+Summary: the max PM2.5 concentration is 251 with the median and IQR be 10.10 and 10.30 respectively, which means generally the air quanlity in 2004 is good, sometimes there might be serious pollution.
+
+
+```{r check for pm2019}
+dim(pm2019)
+head(pm2019)
+tail(pm2019)
+str(pm2019)
+names(pm2019)
+table(pm2019$`Daily Mean PM2.5 Concentration`)
+table(pm2019$DAILY_AQI_VALUE)
+summary(pm2019$`Daily Mean PM2.5 Concentration`)
+summary(pm2019$DAILY_AQI_VALUE)
+```
+
+Summary: the max pm2.5 is decrease to 120.9, compared to 2004. The median is 6.5 and the IQR is 5.9 which mean more centered and healthier.
+
+
+## 2.Combine the two years of data into one data frame. Use the Date variable to create a new column for year, which will serve as an identifier. Change the names of the key variables so that they are easier to refer to in your code.
+
+```{r combine}
+pm2019[,Year:= 2019]
+pm2004[,Year:= 2004]
+pm0419 <- rbind(pm2004,pm2019,fill=TRUE)
+str(pm0419)
+
+colnames(pm0419)[5] <- "Cpm2.5"
+colnames(pm0419)[7] <- "AQI"
+colnames(pm0419)[19] <- "lat"
+colnames(pm0419)[20] <- "lon"
+```
+
+## 3.Create a basic map in leaflet() that shows the locations of the sites (make sure to use different colors for each year). Summarize the spatial distribution of the monitoring sites.
+
+```{r leaflet map, cache=TRUE}
+loc.pal <- colorNumeric(c("dodgerblue3","darkorange2"),domain=pm0419$Year)
+
+leaflet(pm0419) %>% 
+  addProviderTiles('CartoDB.Positron') %>%
+  addCircles(
+    lat = ~lat, lng=~lon,
+    color = ~ loc.pal(pm0419$Year),
+    opacity =1, fillOpacity=1, radius=300
+  )  %>%
+  addLegend('bottomright',pal=loc.pal, values=pm0419$Year,
+            title='Year',opacity = 1)
+
+
+```
+
+## 4.Check for any missing or implausible values of PM in the combined dataset. Explore the proportions of each and provide a summary of any temporal patterns you see in these observations.
+
+```{r check implausible values}
+summary(pm0419$Cpm2.5)
+# there should not be negative value
+mean(pm0419$Cpm2.5<0)
+pm0419 <- pm0419[Cpm2.5>=0]
+summary(pm0419$Cpm2.5)
+
+```
+
+There is 0.39% negative value in the combined dataset.
+Question: How does the mean() function works for us to get the proportion? I write this line according to lecture 3 but I don't really understand why mean() can help us get the proportion. Could you please explain the mechanism of this line? Thank you!
+
+## 5.Explore the main question of interest at three different spatial levels. Create exploratory plots (e.g. boxplots, histograms, line plots) and summary statistics that best suit each level of data. Be sure to write up explanations of what you observe in these data.
+
+```{r state}
+pm0419$Year<-as.character(pm0419$Year)
+ggplot(pm0419)+
+  geom_histogram(mapping=aes(x=Cpm2.5,fill=Year,color=Year),binwidth = 35, position="dodge")+
+  labs(title = "Histogram of concentration of PM2.5 in California in 2004 & 2019",x="pm2.5 concentration")
+```
+
+```{r county, fig.height = 8, fig.width = 6, fig.align = "center"}
+ggplot(pm0419)+
+  geom_boxplot(mapping=aes(y=Cpm2.5,x=Year,color=Year))+
+  ylim(0,150)+
+  facet_wrap(~COUNTY)
+```
+
+```{r site in LA}
+LA <- pm0419 %>%
+  filter(COUNTY == "Los Angeles")
+colnames(LA)[8] <- "Site"
+LA$Site[LA$Site ==""] <- "Unknown site"
+ggplot(LA)+
+  geom_point(mapping=aes(x=Site,y=Cpm2.5,color=Year))+
+  theme(axis.text.x = element_text(size=6,angle=30))
+
+```
+
+Summary: Genrally speaking, the air quality in year 2019 is much better than year 2004, with more observation data and more centered at lower pm2.5 concentration level.
