@@ -2,7 +2,10 @@
 title: "Assignment1"
 author: Jiayi Nie
 date: 24/09/2021
-output: github_document
+output:
+  github_document:
+    html_preview: false
+  html_document: default
 always_allow_html: true
 ---
 
@@ -68,7 +71,7 @@ colnames(pm0419)[20] <- "lon"
 
 ## 3.Create a basic map in leaflet() that shows the locations of the sites (make sure to use different colors for each year). Summarize the spatial distribution of the monitoring sites.
 
-```{r leaflet map, cache=TRUE}
+```{r leaflet map, cache=TRUE, eval = knitr::is_html_output(excludes = "gfm")}
 loc.pal <- colorNumeric(c("dodgerblue3","darkorange2"),domain=pm0419$Year)
 
 leaflet(pm0419) %>% 
