@@ -29,7 +29,7 @@ indi_reg <- merge(
   )
 ```
 
-\#\#Step1:
+## Step1: Merge data and replace NA
 
 ``` r
 nrow(indi_reg)
@@ -52,6 +52,7 @@ nrow(region)
 no duplication after merge
 
 ``` r
+#check which column have NA value
 summary(is.na(indi_reg))
 ```
 
@@ -115,8 +116,9 @@ means_hispanicman <- indi_reg %>%
   select_if(is.numeric) %>%
   colMeans(na.rm = TRUE)
 means_hispanicman<- as.data.frame(t(means_hispanicman))
+
 #repleace the NA for each column
-indi_reg %>%
+indi_reg<- indi_reg %>%
   replace_na(list(
     agepft=means_hispanicman$agepft,
     height=means_hispanicman$height,
@@ -130,82 +132,206 @@ indi_reg %>%
     hayfever=means_hispanicman$hayfever,
     allergy=means_hispanicman$allergy,
     educ_parent=means_hispanicman$educ_parent,
-    somke=means_hispanicman$somke,
+    smoke=means_hispanicman$smoke,
     gasstove=means_hispanicman$gasstove,
     fev=means_hispanicman$fev,
     fvc=means_hispanicman$fvc,
     mmef=means_hispanicman$mmef))
 ```
 
-    ##       townname  sid male race hispanic    agepft   height   weight      bmi
-    ##    1:   Alpine  835    0    W        0 10.099932 143.0000 69.00000 15.33749
-    ##    2:   Alpine  838    0    O        1  9.486653 133.0000 62.00000 15.93183
-    ##    3:   Alpine  839    0    M        1 10.053388 142.0000 86.00000 19.38649
-    ##    4:   Alpine  840    0    W        0  9.965777 146.0000 78.00000 16.63283
-    ##    5:   Alpine  841    1    W        1 10.548939 150.0000 78.00000 15.75758
-    ##   ---                                                                      
-    ## 1196:   Upland 1867    0    M        1  9.618070 140.0000 71.00000 16.46568
-    ## 1197:   Upland 2031    1    W        0  9.798768 135.0000 83.00000 20.70084
-    ## 1198:   Upland 2032    1    W        0  9.549624 137.0000 59.00000 14.28855
-    ## 1199:   Upland 2033    0    M        0 10.121834 130.0000 67.00000 18.02044
-    ## 1200:   Upland 2053    0    W        0  9.966942 138.5984 82.76707 19.41148
-    ##       asthma active_asthma father_asthma mother_asthma wheeze hayfever allergy
-    ##    1:      0             0             0             0      0        0       1
-    ##    2:      0             0             0             0      0        0       0
-    ##    3:      0             0             0             1      1        1       1
-    ##    4:      0             0             0             0      0        0       0
-    ##    5:      0             0             0             0      0        0       0
-    ##   ---                                                                         
-    ## 1196:      0             0             1             0      0        0       0
-    ## 1197:      0             0             0             0      1        0       1
-    ## 1198:      0             0             0             1      1        1       1
-    ## 1199:      0             1             0             0      1        1       0
-    ## 1200:      0             0             0             0      0        0       0
-    ##       educ_parent smoke pets  gasstove      fev      fvc     mmef pm25_mass
-    ##    1:    3.000000     0    1 0.0000000 2529.276 2826.316 3406.579      8.74
-    ##    2:    4.000000    NA    1 0.0000000 1737.793 1963.545 2133.110      8.74
-    ##    3:    3.000000     1    1 0.0000000 2121.711 2326.974 2835.197      8.74
-    ##    4:    2.423868    NA    0 0.8156863 2466.791 2638.221 3466.464      8.74
-    ##    5:    5.000000     0    1 0.0000000 2251.505 2594.649 2445.151      8.74
-    ##   ---                                                                      
-    ## 1196:    3.000000     0    1 0.0000000 1733.338 1993.040 2072.643     22.46
-    ## 1197:    3.000000     0    1 1.0000000 2034.177 2505.535 1814.075     22.46
-    ## 1198:    3.000000     0    1 1.0000000 2077.703 2275.338 2706.081     22.46
-    ## 1199:    3.000000     0    1 1.0000000 1929.866 2122.148 2558.054     22.46
-    ## 1200:    3.000000     0    1 0.0000000 2120.266 2443.876 2447.494     22.46
-    ##       pm25_so4 pm25_no3 pm25_nh4 pm25_oc pm25_ec pm25_om pm10_oc pm10_ec
-    ##    1:     1.73     1.59     0.88    2.54    0.48    3.04    3.25    0.49
-    ##    2:     1.73     1.59     0.88    2.54    0.48    3.04    3.25    0.49
-    ##    3:     1.73     1.59     0.88    2.54    0.48    3.04    3.25    0.49
-    ##    4:     1.73     1.59     0.88    2.54    0.48    3.04    3.25    0.49
-    ##    5:     1.73     1.59     0.88    2.54    0.48    3.04    3.25    0.49
-    ##   ---                                                                   
-    ## 1196:     2.65     7.75     2.96    6.49    1.19    7.79    8.32    1.22
-    ## 1197:     2.65     7.75     2.96    6.49    1.19    7.79    8.32    1.22
-    ## 1198:     2.65     7.75     2.96    6.49    1.19    7.79    8.32    1.22
-    ## 1199:     2.65     7.75     2.96    6.49    1.19    7.79    8.32    1.22
-    ## 1200:     2.65     7.75     2.96    6.49    1.19    7.79    8.32    1.22
-    ##       pm10_tc formic acetic  hcl hno3 o3_max o3106 o3_24   no2  pm10 no_24hr
-    ##    1:    3.75   1.03   2.49 0.41 1.98  65.82 55.05 41.23 12.18 24.73    2.48
-    ##    2:    3.75   1.03   2.49 0.41 1.98  65.82 55.05 41.23 12.18 24.73    2.48
-    ##    3:    3.75   1.03   2.49 0.41 1.98  65.82 55.05 41.23 12.18 24.73    2.48
-    ##    4:    3.75   1.03   2.49 0.41 1.98  65.82 55.05 41.23 12.18 24.73    2.48
-    ##    5:    3.75   1.03   2.49 0.41 1.98  65.82 55.05 41.23 12.18 24.73    2.48
-    ##   ---                                                                       
-    ## 1196:    9.54   2.67   4.73 0.46 4.03  63.83 46.50 22.20 37.97 40.80   18.48
-    ## 1197:    9.54   2.67   4.73 0.46 4.03  63.83 46.50 22.20 37.97 40.80   18.48
-    ## 1198:    9.54   2.67   4.73 0.46 4.03  63.83 46.50 22.20 37.97 40.80   18.48
-    ## 1199:    9.54   2.67   4.73 0.46 4.03  63.83 46.50 22.20 37.97 40.80   18.48
-    ## 1200:    9.54   2.67   4.73 0.46 4.03  63.83 46.50 22.20 37.97 40.80   18.48
-    ##       pm2_5_fr iacid oacid total_acids       lon      lat
-    ##    1:    10.28  2.39  3.52        5.50 -116.7664 32.83505
-    ##    2:    10.28  2.39  3.52        5.50 -116.7664 32.83505
-    ##    3:    10.28  2.39  3.52        5.50 -116.7664 32.83505
-    ##    4:    10.28  2.39  3.52        5.50 -116.7664 32.83505
-    ##    5:    10.28  2.39  3.52        5.50 -116.7664 32.83505
-    ##   ---                                                    
-    ## 1196:    27.73  4.49  7.40       11.43 -117.6484 34.09751
-    ## 1197:    27.73  4.49  7.40       11.43 -117.6484 34.09751
-    ## 1198:    27.73  4.49  7.40       11.43 -117.6484 34.09751
-    ## 1199:    27.73  4.49  7.40       11.43 -117.6484 34.09751
-    ## 1200:    27.73  4.49  7.40       11.43 -117.6484 34.09751
+## Step2: Create new variable and summarise
+
+``` r
+indi_reg<-indi_reg %>%
+  mutate(obesity_level=
+           case_when(bmi<14 ~"underweight",
+                     bmi<=22 ~"normal",
+                     bmi<=24~"overweight",
+                     bmi>24~"obese"))
+datasum <- indi_reg[,.(
+  maxbmi = max(bmi),
+  minbmi = min(bmi),
+  count = .N
+  ), by = obesity_level
+]
+
+knitr::kable(datasum)
+```
+
+| obesity\_level |   maxbmi |   minbmi | count |
+| :------------- | -------: | -------: | ----: |
+| normal         | 21.96387 | 14.00380 |   975 |
+| overweight     | 23.99650 | 22.02353 |    87 |
+| obese          | 41.26613 | 24.00647 |   103 |
+| underweight    | 13.98601 | 11.29640 |    35 |
+
+## Step3: create smoke\_gas\_exposure
+
+``` r
+#Not really sure about how to deal with those "NAs" which replace by the mean at step 2 but since they are not equal to 0 treat them as exposed. 
+indi_reg[, smoke_gas_exposure := fifelse(smoke != 0 & gasstove == 0, "expose to smoke",
+                                                   fifelse(smoke == 0 & gasstove != 0, "expose to gas",
+                                                           fifelse(smoke == 0 & gasstove == 0, "no exposure","expose to both")))]
+```
+
+    ## Warning in `[.data.table`(indi_reg, , `:=`(smoke_gas_exposure, fifelse(smoke !
+    ## = : Invalid .internal.selfref detected and fixed by taking a (shallow) copy
+    ## of the data.table so that := can add this new column by reference. At an
+    ## earlier point, this data.table has been copied by R (or was created manually
+    ## using structure() or similar). Avoid names<- and attr<- which in R currently
+    ## (and oddly) may copy the whole data.table. Use set* syntax instead to avoid
+    ## copying: ?set, ?setnames and ?setattr. If this message doesn't help, please
+    ## report your use case to the data.table issue tracker so the root cause can be
+    ## fixed or this message improved.
+
+## Step4: create summary table
+
+``` r
+# Not sure what asthma indicator means... Since it's a binary value, use mean to get asthma proportion for each variable
+townsum<- indi_reg %>%
+  group_by(townname) %>%
+  mutate(fev=fev/60)%>%
+  summarise(mean(fev),sd(fev),mean(asthma))
+knitr::kable(townsum)
+```
+
+| townname      | mean(fev) |  sd(fev) | mean(asthma) |
+| :------------ | --------: | -------: | -----------: |
+| Alpine        |  34.84294 | 4.844276 |    0.1148047 |
+| Atascadero    |  34.69030 | 5.391881 |    0.2532031 |
+| Lake Elsinore |  34.11717 | 5.061896 |    0.1280078 |
+| Lake Gregory  |  34.91352 | 5.310580 |    0.1516016 |
+| Lancaster     |  33.61127 | 5.305750 |    0.1648047 |
+| Lompoc        |  34.09351 | 5.852351 |    0.1148047 |
+| Long Beach    |  33.22404 | 5.343944 |    0.1364062 |
+| Mira Loma     |  33.23689 | 5.439632 |    0.1580078 |
+| Riverside     |  33.30462 | 4.648922 |    0.1100000 |
+| San Dimas     |  33.82758 | 5.316175 |    0.1716016 |
+| Santa Maria   |  33.88836 | 5.211392 |    0.1348047 |
+| Upland        |  33.91205 | 5.723363 |    0.1216016 |
+
+``` r
+sexsum<- indi_reg %>%
+  rename("sex" = "male") %>%
+  mutate(sex = if_else(sex == 1, "male", "female")) %>%
+  group_by(sex) %>%
+  mutate(fev=fev/60)%>%
+  summarise(mean(fev),sd(fev),mean(asthma))
+knitr::kable(sexsum)
+```
+
+| sex    | mean(fev) |  sd(fev) | mean(asthma) |
+| :----- | --------: | -------: | -----------: |
+| female |  32.89833 | 5.255702 |    0.1217085 |
+| male   |  35.08177 | 5.125261 |    0.1724113 |
+
+``` r
+obssum<- indi_reg %>%
+  group_by(obesity_level) %>%
+  mutate(fev = fev/60) %>%
+  summarise(mean(fev),sd(fev),mean(asthma))
+knitr::kable(obssum)
+```
+
+| obesity\_level | mean(fev) |  sd(fev) | mean(asthma) |
+| :------------- | --------: | -------: | -----------: |
+| normal         |  33.49398 | 4.940887 |    0.1406811 |
+| obese          |  37.79747 | 5.403976 |    0.2085482 |
+| overweight     |  37.07203 | 5.290434 |    0.1646013 |
+| underweight    |  28.31975 | 5.076308 |    0.0857143 |
+
+``` r
+expsum<- indi_reg %>%
+  group_by(smoke_gas_exposure) %>%
+  mutate(fev = fev/60) %>%
+  summarise(mean(fev),sd(fev),mean(asthma))
+knitr::kable(expsum)
+```
+
+| smoke\_gas\_exposure | mean(fev) |  sd(fev) | mean(asthma) |
+| :------------------- | --------: | -------: | -----------: |
+| expose to both       |  33.85903 | 5.121660 |    0.1458333 |
+| expose to gas        |  33.83787 | 5.318528 |    0.1460865 |
+| expose to smoke      |  34.68843 | 4.800238 |    0.1541540 |
+| no exposure          |  34.40755 | 5.497146 |    0.1478534 |
+
+### Looking at the data (EDA)
+
+``` r
+# Already check and wrangling data at steps above, start graphong now.
+ggplot(indi_reg,mapping=aes(x=bmi,y=fev,color=townname)) +
+  geom_point() +
+  geom_smooth(method = "lm", se= FALSE, color = "black") +
+  labs(title = "BMI vs fev", x = "BMI kg/m^2", y="fev")+
+  facet_wrap(~townname, nrow=4)
+```
+
+    ## `geom_smooth()` using formula 'y ~ x'
+
+![](README_files/figure-gfm/sctterplots%20with%20regression%20of%20BMI%20vs%20fev%20by%20townname-1.png)<!-- -->
+This graph illustrates the scatter plot with linear regression for BMI
+vs fev. Group by region (town) Generally speaking, regardless of
+region(town), there is a trend that the larger BMI a person has, the
+greater force expiratory volume is. But since majority data crowded at
+10-20 interval, it would be a good idea if we could sample based on BMI
+strata.
+
+``` r
+ggplot(indi_reg) +
+  geom_histogram(mapping = aes(x= fev, fill=obesity_level)) +
+  scale_fill_brewer(palette = "Spectral") +
+  labs(title = "histogram of fev colored by BMI (obesiry_level)", x="fev")
+```
+
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+
+![](README_files/figure-gfm/histograms%20for%20BMI-1.png)<!-- --> This
+histogram shows the frequency of fev grouped by BMI (obesity\_level).
+According to this histogram, we could see that the mean and median for
+underweight is at over 1500 while the median and mean for normal,
+overweight and obese shift rightward. But it’s obvious that data size
+for three groups other than normal group are quiet small, this trend is
+not very convincing.
+
+``` r
+ggplot(indi_reg) +
+  geom_histogram(mapping = aes(x= fev, fill=smoke_gas_exposure)) +
+  scale_fill_brewer(palette = "Set3") +
+  labs(title = "histogram of fev colored by smoke_gas_exposure", x="fev")
+```
+
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+
+![](README_files/figure-gfm/histogram%20for%20exposure-1.png)<!-- -->
+This histogram indicates the frequency of fev grouped by smoke/gas
+exposure. This histogram above show all four group mean and median (even
+mode) are locate just at 2100ish. All four groups have similar fev
+distribution. We could not tell apparent assciation from this histogram.
+
+``` r
+ggplot(indi_reg) +
+  geom_bar(mapping = aes(x= obesity_level, fill=smoke_gas_exposure)) +
+  scale_fill_brewer(palette = "Accent")
+```
+
+![](README_files/figure-gfm/barchart%20of%20BMI%20by%20smoke/gas%20exposure-1.png)<!-- -->
+
+``` r
+  labs(title = "barchart of BMI (obesity level) colored by smoke/gas exposure", x="BMI")
+```
+
+    ## $x
+    ## [1] "BMI"
+    ## 
+    ## $title
+    ## [1] "barchart of BMI (obesity level) colored by smoke/gas exposure"
+    ## 
+    ## attr(,"class")
+    ## [1] "labels"
+
+This bar graph show the frenquency of obesity\_level grouped by
+smoke/gas exposure. Regardless of the obesity level, majority people
+expose to gas, followed by no exposure, exposure to both and least
+expose to smoke, in other words, the distribution of exposure is
+basically same among these four group. And as we noticed before, most
+people fall into normal group and least people fall into underweight.

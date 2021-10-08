@@ -44,7 +44,7 @@ indi_reg <- merge(
 
 ```
 
-##Step1:
+## Step1: Merge data and replace NA
 
 ```{r check duplications}
 nrow(indi_reg)
@@ -56,19 +56,18 @@ nrow(region)
 no duplication after merge
 
 ```{r impute NAs}
+#check which column have NA value
 summary(is.na(indi_reg))
-```
 
-
-```{r}
 #creat a new dataset of all numeric column means
 means_hispanicman <- indi_reg %>%
   filter(male == 1 & hispanic == 1) %>%
   select_if(is.numeric) %>%
   colMeans(na.rm = TRUE)
 means_hispanicman<- as.data.frame(t(means_hispanicman))
+
 #repleace the NA for each column
-indi_reg %>%
+indi_reg<- indi_reg %>%
   replace_na(list(
     agepft=means_hispanicman$agepft,
     height=means_hispanicman$height,
@@ -82,10 +81,119 @@ indi_reg %>%
     hayfever=means_hispanicman$hayfever,
     allergy=means_hispanicman$allergy,
     educ_parent=means_hispanicman$educ_parent,
-    somke=means_hispanicman$somke,
+    smoke=means_hispanicman$smoke,
     gasstove=means_hispanicman$gasstove,
     fev=means_hispanicman$fev,
     fvc=means_hispanicman$fvc,
     mmef=means_hispanicman$mmef))
+```
+
+## Step2: Create new variable and summarise
+
+```{r create obesity_level and summary table}
+indi_reg<-indi_reg %>%
+  mutate(obesity_level=
+           case_when(bmi<14 ~"underweight",
+                     bmi<=22 ~"normal",
+                     bmi<=24~"overweight",
+                     bmi>24~"obese"))
+datasum <- indi_reg[,.(
+  maxbmi = max(bmi),
+  minbmi = min(bmi),
+  count = .N
+  ), by = obesity_level
+]
+
+knitr::kable(datasum)
+  
+```
+
+
+## Step3: create smoke_gas_exposure
+
+```{r create smoke_gas_exposure}
+#Not really sure about how to deal with those "NAs" which replace by the mean at step 2 but since they are not equal to 0 treat them as exposed. 
+indi_reg[, smoke_gas_exposure := fifelse(smoke != 0 & gasstove == 0, "expose to smoke",
+                                                   fifelse(smoke == 0 & gasstove != 0, "expose to gas",
+                                                           fifelse(smoke == 0 & gasstove == 0, "no exposure","expose to both")))]
+
+```
+
+## Step4: create summary table
+
+```{r four tables}
+# Not sure what asthma indicator means... Since it's a binary value, use mean to get asthma proportion for each variable
+townsum<- indi_reg %>%
+  group_by(townname) %>%
+  mutate(fev=fev/60)%>%
+  summarise(mean(fev),sd(fev),mean(asthma))
+knitr::kable(townsum)
+
+sexsum<- indi_reg %>%
+  rename("sex" = "male") %>%
+  mutate(sex = if_else(sex == 1, "male", "female")) %>%
+  group_by(sex) %>%
+  mutate(fev=fev/60)%>%
+  summarise(mean(fev),sd(fev),mean(asthma))
+knitr::kable(sexsum)
+
+obssum<- indi_reg %>%
+  group_by(obesity_level) %>%
+  mutate(fev = fev/60) %>%
+  summarise(mean(fev),sd(fev),mean(asthma))
+knitr::kable(obssum)
+
+expsum<- indi_reg %>%
+  group_by(smoke_gas_exposure) %>%
+  mutate(fev = fev/60) %>%
+  summarise(mean(fev),sd(fev),mean(asthma))
+knitr::kable(expsum)
+```
+
+
+### Looking at the data (EDA)
+
+```{r sctterplots with regression of BMI vs fev by townname}
+# Already check and wrangling data at steps above, start graphong now.
+ggplot(indi_reg,mapping=aes(x=bmi,y=fev,color=townname)) +
+  geom_point() +
+  geom_smooth(method = "lm", se= FALSE, color = "black") +
+  labs(title = "BMI vs fev", x = "BMI kg/m^2", y="fev")+
+  facet_wrap(~townname, nrow=4)
+
+
+```
+This graph illustrates the scatter plot with linear regression for BMI vs fev. Group by region (town)
+Generally speaking, regardless of region(town), there is a trend that the larger BMI a person has, the greater force expiratory volume is. But since majority data crowded at 10-20 interval, it would be a good idea if we could sample based on BMI strata.
+
+```{r histograms for BMI}
+ggplot(indi_reg) +
+  geom_histogram(mapping = aes(x= fev, fill=obesity_level)) +
+  scale_fill_brewer(palette = "Spectral") +
+  labs(title = "histogram of fev colored by BMI (obesiry_level)", x="fev")
+```
+This histogram shows the frequency of fev grouped by BMI (obesity_level).
+According to this histogram, we could see that the mean and median for underweight is at over 1500 while the median and mean for normal, overweight and obese shift rightward. But it's obvious that data size for three groups other than normal group are quiet small, this trend is not very convincing. 
+
+```{r histogram for exposure}
+ggplot(indi_reg) +
+  geom_histogram(mapping = aes(x= fev, fill=smoke_gas_exposure)) +
+  scale_fill_brewer(palette = "Set3") +
+  labs(title = "histogram of fev colored by smoke_gas_exposure", x="fev")
+```
+This histogram indicates the frequency of fev grouped by smoke/gas exposure.
+This histogram above show all four group mean and median (even mode) are locate just at 2100ish. All four groups have similar fev distribution. We could not tell apparent assciation from this histogram.
+
+```{r barchart of BMI by smoke/gas exposure}
+ggplot(indi_reg) +
+  geom_bar(mapping = aes(x= obesity_level, fill=smoke_gas_exposure)) +
+  scale_fill_brewer(palette = "Accent")
+  labs(title = "barchart of BMI (obesity level) colored by smoke/gas exposure", x="BMI")
+
+```
+This bar graph show the frenquency of obesity_level grouped by smoke/gas exposure. Regardless of the obesity level, majority people expose to gas, followed by no exposure, exposure to both and least expose to smoke, in other words, the distribution of exposure is basically same among these four group. And as we noticed before, most people fall into normal group and least people fall into underweight.
+
+```{r statistical summary graph of FEV by BMI and by smoke/gas exposure}
+
 ```
 
