@@ -1,0 +1,91 @@
+---
+title: "Assignment2"
+author: Jiayi Nie
+date: 06/10/2021
+output:
+  github_document:
+    html_preview: false
+  html_document: default
+always_allow_html: true
+---
+
+### Data Wrangling
+
+```{r package, include=FALSE}
+library(tidyverse)
+library(data.table)
+
+```
+
+
+```{r read data}
+library(data.table)
+if(!file.exists("chs_individual.csv")){
+  download.file("https://raw.githubusercontent.com/USCbiostats/data-science-data/master/01_chs/chs_individual.csv", "chs_individual.csv", method="libcurl", timeout = 60)
+}
+
+individual <- data.table::fread("chs_individual.csv")
+
+if(!file.exists("chs_regional.csv")){
+  download.file("https://raw.githubusercontent.com/USCbiostats/data-science-data/master/01_chs/chs_regional.csv", "chs_regional.csv", method="libcurl", timeout = 60)
+}
+
+region <- data.table::fread("chs_regional.csv")
+
+```
+
+```{r merge two dataset}
+indi_reg <- merge(
+  x=individual,
+  y=region,
+  by.x = "townname",
+  by.y = "townname"
+  )
+
+```
+
+##Step1:
+
+```{r check duplications}
+nrow(indi_reg)
+nrow(individual)
+nrow(region)
+
+```
+
+no duplication after merge
+
+```{r impute NAs}
+summary(is.na(indi_reg))
+```
+
+
+```{r}
+#creat a new dataset of all numeric column means
+means_hispanicman <- indi_reg %>%
+  filter(male == 1 & hispanic == 1) %>%
+  select_if(is.numeric) %>%
+  colMeans(na.rm = TRUE)
+means_hispanicman<- as.data.frame(t(means_hispanicman))
+#repleace the NA for each column
+indi_reg %>%
+  replace_na(list(
+    agepft=means_hispanicman$agepft,
+    height=means_hispanicman$height,
+    weight=means_hispanicman$weight,
+    bmi=means_hispanicman$bmi,
+    asthma=means_hispanicman$asthma,
+    active_asthma=means_hispanicman$active_asthma,
+    father_asthma=means_hispanicman$father_asthma,
+    mother_asthma=means_hispanicman$mother_asthma,
+    wheeze=means_hispanicman$wheeze,
+    hayfever=means_hispanicman$hayfever,
+    allergy=means_hispanicman$allergy,
+    educ_parent=means_hispanicman$educ_parent,
+    somke=means_hispanicman$somke,
+    gasstove=means_hispanicman$gasstove,
+    fev=means_hispanicman$fev,
+    fvc=means_hispanicman$fvc,
+    mmef=means_hispanicman$mmef))
+```
+

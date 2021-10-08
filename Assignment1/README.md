@@ -602,7 +602,6 @@ leaflet(pm0419) %>%
             title='Year',opacity = 1)
 ```
 
-
 ## 4.Check for any missing or implausible values of PM in the combined dataset. Explore the proportions of each and provide a summary of any temporal patterns you see in these observations.
 
 ``` r
@@ -632,8 +631,6 @@ does the mean() function works for us to get the proportion? I write
 this line according to lecture 3 but I don’t really understand why
 mean() can help us get the proportion. Could you please explain the
 mechanism of this line? Thank you\!
-
-> Because, when x in {0,1} (i.e., dummy), the mean and proportion are the same.
 
 ## 5.Explore the main question of interest at three different spatial levels. Create exploratory plots (e.g. boxplots, histograms, line plots) and summary statistics that best suit each level of data. Be sure to write up explanations of what you observe in these data.
 
