@@ -156,7 +156,7 @@ knitr::kable(expsum)
 ```{r sctterplots with regression of BMI vs fev by townname}
 # Already check and wrangling data at steps above, start graphong now.
 ggplot(indi_reg,mapping=aes(x=bmi,y=fev,color=townname)) +
-  geom_point() +
+  geom_jitter() +
   geom_smooth(method = "lm", se= FALSE, color = "black") +
   labs(title = "BMI vs fev", x = "BMI kg/m^2", y="fev")+
   facet_wrap(~townname, nrow=4)
@@ -193,7 +193,60 @@ ggplot(indi_reg) +
 ```
 This bar graph show the frenquency of obesity_level grouped by smoke/gas exposure. Regardless of the obesity level, majority people expose to gas, followed by no exposure, exposure to both and least expose to smoke, in other words, the distribution of exposure is basically same among these four group. And as we noticed before, most people fall into normal group and least people fall into underweight.
 
-```{r statistical summary graph of FEV by BMI and by smoke/gas exposure}
+```{r statistical summary graph of FEV by BMI}
+#I‘m not sure whether a boxplot is statistical summary but I think it's equivalent to stat_summary
+ggplot(indi_reg) + 
+    stat_summary(mapping = aes(x = obesity_level, y = fev),
+    fun.min = min,
+    fun.max = max,
+    fun = median) +
+  labs(title = "summary graph for fev vs BMI (obesity level)", x = "obesity_level", y ="fev")
+```
+This summary graph indicates the minimum, maximum and median for fev in each BMI group.
+According to this graph, obesity group has the highest fev followed by overweight, normal and underweight group.
+
+```{r statistical summary graph of fev by exposu}
+ggplot(indi_reg) + 
+    stat_summary(mapping = aes(x = smoke_gas_exposure, y = fev),
+    fun.min = min,
+    fun.max = max,
+    fun = median) +
+  labs(title = "summary graph for fev vs smoke/gas exposure", x = "exposure status", y ="fev")
+```
+This summary graph indicates the minimun, maximun and median for fev in each exposure group.
+According to this graph, the median and distribution is similary for all four group. No obvious difference.
+
+```{r leaflet}
+library(leaflet)
+
+mapdata <- indi_reg %>%
+  select(pm25_mass, lon, lat, townname)
+
+pm25.pal <- colorNumeric(palette = "Reds", domain = mapdata$pm25_mass)
+
+
+leaflet(mapdata) %>%
+  addProviderTiles('CartoDB.Positron') %>%
+  addCircles(
+    lat = ~lat, lng = ~lon,
+    label = ~paste0(round(pm25_mass,4), ' µg/m^−3', ' ', townname),
+    color = ~pm25.pal(mapdata$pm25_mass),
+    opacity = 1, fillOpacity = 1, radius = 500
+    ) %>%
+  addLegend('bottomleft', pal = pm25.pal, values = indi_reg$pm25_mass,
+            title = 'PM2.5 mass', opacity = 1)
 
 ```
+This leaflet shows the PM2.5 concentration in each region. It shows that the closer the town is to inland and cities (more roads shown on the map), the worse the air quality (higher PM2.5 mass).
 
+
+```{r a bar chart of fev vs pm25_mass}
+#Since pm25_mass is 12 discrete number in each community, we use histogram to fill
+ggplot(indi_reg) +
+  geom_point(mapping = aes(x = pm25_mass,y=fev,color = pm25_mass)) +
+#  scale_color_brewer(palette="Dark2")+ this line reports error and I don't know why... seems like pm24_mass is a discrete scale but the palette is continous... it works on the example websit (ref: http://www.sthda.com/english/wiki/ggplot2-colors-how-to-change-colors-automatically-and-manually#change-colors-by-groups) I don't know what's the difference...
+  
+  labs(title = "fev distribution colored by pm2.5 mass", x= "pm2.5", y = "fev")
+
+```
+This scatter plot indicates that the distribution of fev under each pm2.5 level (actually each region since we only have 12 town and 12 observation). There is no obvious trend or association between fev and pm2.5.
