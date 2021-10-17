@@ -14,7 +14,7 @@ always_allow_html: true
 ```{r package, include=FALSE}
 library(tidyverse)
 library(data.table)
-
+knitr::is_html_output(exclude = "gfm")
 ```
 
 
@@ -182,7 +182,7 @@ ggplot(indi_reg) +
   labs(title = "histogram of fev colored by smoke_gas_exposure", x="fev")
 ```
 This histogram indicates the frequency of fev grouped by smoke/gas exposure.
-This histogram above show all four group mean and median (even mode) are locate just at 2100ish. All four groups have similar fev distribution. We could not tell apparent assciation from this histogram.
+This histogram above show all four group mean and median (even mode) are locate just at 2100ish. All four groups have similar fev distribution. We could not tell apparent association from this histogram.
 
 ```{r barchart of BMI by smoke/gas exposure}
 ggplot(indi_reg) +
@@ -250,3 +250,9 @@ ggplot(indi_reg) +
 
 ```
 This scatter plot indicates that the distribution of fev under each pm2.5 level (actually each region since we only have 12 town and 12 observation). There is no obvious trend or association between fev and pm2.5.
+
+
+EDA report: According to the graph above, we can conclude for now that 
+  1.the larger BMI a person have, the greater FEC(forced expiratory volume) he would have. 
+  2. there is no obvious association between smoke and gas exposure and FEV
+  3. there is no obvious assocaition between pm2.5 exposure and FEV.
