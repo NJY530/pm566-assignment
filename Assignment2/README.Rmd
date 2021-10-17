@@ -14,7 +14,6 @@ always_allow_html: true
 ```{r package, include=FALSE}
 library(tidyverse)
 library(data.table)
-knitr::is_html_output(exclude = "gfm")
 ```
 
 
@@ -219,7 +218,7 @@ According to this graph, the median and distribution is similary for all four gr
 ```{r leaflet}
 library(leaflet)
 
-mapdata <- indi_reg %>%
+mapdata <- region %>%
   select(pm25_mass, lon, lat, townname)
 
 pm25.pal <- colorNumeric(palette = "Reds", domain = mapdata$pm25_mass)
