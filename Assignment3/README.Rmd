@@ -1,0 +1,220 @@
+---
+title: "Assignment3"
+author: Jiayi Nie
+date: 11/03/2021
+output:
+  github_document: 
+    html_preview: false
+  html_document: default
+  word_document: default
+always_allow_html: true
+---
+
+```{r packages}
+library(tidyverse)
+library(tidytext)
+library(data.table)
+library(stringr)
+library(forcats)
+
+```
+
+# APIs
+
+## How many papers were able to find
+```{r how-many}
+# Downloading the website
+web <- xml2::read_html("https://pubmed.ncbi.nlm.nih.gov/?term=sars-cov-2+trial+vaccine+children.")
+
+# Finding the counts
+counts1 <- xml2::xml_find_first(web, "/html/body/main/div[9]/div[2]/div[2]/div[1]/div[1]")
+
+# Turning it into text
+counts1 <- as.character(counts1)
+
+# Extracting the data using regex
+stringr::str_extract(counts1, "[0-9,]+")
+```
+
+
+```{r id}
+library(httr)
+query_ids <- GET(
+  url   = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
+  query = list(
+    db = "pubmed",
+    term = "sars-cov-2 trial vaccine children",
+    retmax = 250
+    )
+)
+
+# Extracting the content of the response of GET
+ids <- httr::content(query_ids)
+```
+
+
+```{r publication}
+# Turn the result into a character vector
+ids <- as.character(ids)
+
+# Find all the ids 
+ids <- stringr::str_extract_all(ids, "<Id>[[:digit:]]+</Id>")[[1]]
+
+# Remove all the leading and trailing <Id> </Id>. Make use of "|"
+ids <- stringr::str_remove_all(ids, "<Id>|</Id>")
+
+publications <- GET(
+  url   = "https://eutils.ncbi.nlm.nih.gov/",
+  path  = "entrez/eutils/efetch.fcgi",
+  query = list(
+    db = "pubmed",
+    id = I(paste(ids, collapse=",")),
+    retmax = 250,
+    rettype = "abstract"
+    )
+)
+
+# Turning the output into character vector
+publications <- httr::content(publications)
+publications_txt <- as.character(publications)
+```
+
+##Form the dataset
+
+keep one element per id
+```{r}
+pub_char_list <- xml2::xml_children(publications)
+pub_char_list <- sapply(pub_char_list, as.character)
+```
+
+Geitting the abstracts
+
+```{r}
+abstracts <- str_extract(pub_char_list, "<Abstract>[[:print:][:space:]]+</Abstract>")
+abstracts <- str_remove_all(abstracts, "</?[[:alnum:]- =\"]+>") # '</?[[:alnum:]- ="]+>'
+abstracts <- str_replace_all(abstracts, "[[:space:]]+", " ")
+```
+
+Getting the titles
+
+```{r}
+titles <- str_extract(pub_char_list, "<ArticleTitle>[[:print:][:space:]]+</ArticleTitle>")
+titles <- str_remove_all(titles, "</?[[:alnum:]- =\"]+>")
+```
+
+Getting the publication date
+
+```{r}
+pubdate <- str_extract(pub_char_list, "<PubDate>[[:print:][:space:]]+</PubDate>")
+pubdate <- str_remove_all(pubdate, "</?[[:alnum:]- =\"]+>")
+pubdate <- str_replace_all(pubdate, "[[:space:]]+", " ")
+```
+
+Getting the publication journal
+
+```{r}
+journal <- str_extract(pub_char_list, "<Title>[[:print:][:space:]]+</Title>")
+journal <- str_remove_all(journal, "</?[[:alnum:]- =\"]+>")
+```
+
+Finally, the dataset
+
+```{r}
+database <- data.frame(
+  PubMedId = ids,
+  Title    = titles,
+  Journal  = journal,
+  Date     = pubdate,
+  Abstract = abstracts
+)
+knitr::kable(database[1:10,], caption = "Some papers about 'sars-cov-2 trial vaccine children' ")
+```
+
+# Text Mining
+
+```{r download data}
+if (!file.exists("pubmed.csv"))
+  download.file(
+    url = "https://raw.githubusercontent.com/USCbiostats/data-science-data/master/03_pubmed/pubmed.csv",
+    destfile = "pubmed.csv",
+    method   = "libcurl",
+    timeout  = 60
+    )
+pubmed <- read.csv("pubmed.csv")
+pubmed <- as_tibble(pubmed)
+```
+
+## First Tokenize the abstracts and count the number of each token.
+```{r tokenized the abstract}
+pubmed %>%
+  unnest_tokens(output = word, input = abstract) %>%
+  count(word, sort = TRUE) %>%
+  top_n(20)%>%
+  knitr::kable()
+```
+
+We could see that there is some interesting word like: covid, patient, cancer and prostate, but many stop words included.
+
+### removing stop words
+```{r remove stopword}
+pubmed %>%
+  unnest_tokens(output = word, input = abstract) %>%
+  count(word, sort = TRUE) %>%
+  anti_join(stop_words, by= "word")%>%
+  filter(!grepl("^[0-9]+$",x=word)) %>% #Also remove numbers
+  top_n(20)%>%
+  knitr::kable()
+```
+
+Now we see that after removing the stop words, the distribution of token frequency changes a lot. Now we can see clearly that the most frequency word is covid, followed by patients, cancers, etc.
+
+### Now check the 5 most common tokens for each search term
+
+```{r}
+pubmed %>%
+  unnest_tokens(output = word, input = abstract) %>%
+  anti_join(stop_words, by= "word")%>%
+  filter(!grepl("^[0-9]+$",x=word)) %>% #Also remove numbers
+  group_by(term) %>%
+  count(word) %>%
+  top_n(5,n)%>%
+  arrange(desc(n),.by_group=TRUE) %>%
+  knitr::kable()
+
+```
+
+## Tokenize the abstracts into bigrams
+
+```{r}
+pubmed %>%
+  unnest_ngrams(output = bigram, input = abstract, n=2) %>%
+  count(bigram, sort = TRUE) %>%
+  top_n(10)%>%
+  ggplot(aes(n,fct_reorder(bigram,n)))+
+    geom_col()+
+    labs(title = "Bigram frequency", x="frequency",y="bigram")
+```
+
+There are many stop word combo but we still could find some notable bigram like: covid 19, prostate cancer and pre eclampsia.
+
+## Calculate the TF-IDF value
+
+```{r}
+pubmed %>%
+  unnest_tokens(text, abstract) %>%
+  group_by(term) %>%
+  count(text, term) %>%
+  bind_tf_idf(text, term, n)%>%
+  arrange(desc(tf_idf), .by_group=TRUE)%>%
+  top_n(5)%>%
+  knitr::kable()
+
+```
+
+For the term covid, the top 5 words with highest TF-IDF value are: covid, pandamic, coronavirus, sars, cov
+For the term cystic fibrosis, the top 5 words with highest TF-IDF value are: cf, fibrosis, cystic, cftr, sweat
+For the term meaningitis, the top 5 words with highest TF-IDF value are: meningitis, meningeal, pachymeningitis, csf, meninges
+For the term preeclampsia, the top 5 words with highest TF-IDF value are: eclampsia, preeclampsia, pregnacy, maternal, gestatinal
+For the term prostate cancer, the top 5 words with highest TF-IDF value are: prostate, androgen, psa, prostatectomy, castration
+
+Compared to the result from question1, we could see that there is some overlap for each term, for example, covid-covid, ctystic fibrosis-cf, meningitis-meningitis, etc. It's clearly that some common word like patients, disease, heath have been removed from the result in question 5. TF-IDF works better for researchers to figure out the unique key word for each search term.
